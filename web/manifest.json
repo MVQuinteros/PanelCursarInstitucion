@@ -1,11 +1,11 @@
 {
-    "name": "institucion_web",
-    "short_name": "institucion_web",
+    "name": "Instituciones CursAR",
+    "short_name": "CursAR Inst.",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1E88E5",
+    "theme_color": "#1E88E5",
+    "description": "Panel web para que las instituciones gestionen su perfil y ofertas académicas en CURSAR.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
