@@ -34,11 +34,6 @@ jobs:
       - name: Build web
         run: flutter build web --release --base-href "/PanelCursarInstitucion/"
 
-      - name: Configurar Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
       - name: Subir artefacto
         uses: actions/upload-pages-artifact@v3
         with:
