@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,9 +14,9 @@ import '../services/ofertas_service.dart';
 
 /// Dashboard del panel institucional.
 ///
-/// Tarjetas de estadísticas clickeables (estilo `adminCursarF`): total de
-/// ofertas, aprobadas, pendientes, inactivas, estado de la institución y
-/// completitud del perfil.
+/// Gráficas (fl_chart) al abrir: estado de moderación (barras) y ofertas
+/// por área (dona), tarjetas de estadísticas clickeables (estilo
+/// `adminCursarF`) y completitud del perfil.
 class InstitucionDashboardScreen extends StatelessWidget {
   const InstitucionDashboardScreen({super.key});
 
@@ -41,6 +42,8 @@ class InstitucionDashboardScreen extends StatelessWidget {
               ),
             ),
           _WelcomeCard(sesion: sesion),
+          const SizedBox(height: 12),
+          _GraficasSection(institucionUid: instUid),
           const SizedBox(height: 12),
           _StatsGrid(
             sesion: sesion,
@@ -471,6 +474,479 @@ class _AccionCard extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
+    );
+  }
+}
+
+/// Paleta de los gráficos (misma que `CHART_COLORS` del panel admin).
+const _chartColors = <Color>[
+  Color(0xFF007BFF),
+  Color(0xFF2EA043),
+  Color(0xFFD29922),
+  Color(0xFF9C27B0),
+  Color(0xFFE53935),
+  Color(0xFF1E88E5),
+  Color(0xFF00A0B0),
+  Color(0xFF8B949E),
+];
+
+/// Gráficas del dashboard (estilo `adminCursarF`): barras de moderación +
+/// dona de ofertas por área. 2 columnas en desktop, apiladas en móvil.
+class _GraficasSection extends StatelessWidget {
+  final String institucionUid;
+
+  const _GraficasSection({required this.institucionUid});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<OfertaModel>>(
+      stream: institucionUid.isNotEmpty
+          ? OfertasService.instance.ofertasDeInstitucion(institucionUid)
+          : Stream.value(const <OfertaModel>[]),
+      builder: (context, snapshot) {
+        final cargando = snapshot.connectionState == ConnectionState.waiting;
+        final ofertas = snapshot.data ?? const <OfertaModel>[];
+        final aprobadas = ofertas.where((o) => o.estaAprobada).length;
+        final pendientes = ofertas.where((o) => !o.estaAprobada).length;
+
+        const spinner = Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final tarjetas = [
+              _GraficaCard(
+                titulo: 'Estado de moderación',
+                subtitulo: 'Ofertas aprobadas y pendientes de revisión',
+                child: cargando
+                    ? spinner
+                    : _BarrasModeracion(
+                        aprobadas: aprobadas,
+                        pendientes: pendientes,
+                      ),
+              ),
+              _GraficaCard(
+                titulo: 'Ofertas por área',
+                subtitulo: 'Distribución de tus ${ofertas.length} oferta(s)',
+                child: cargando ? spinner : _DonaPorArea(ofertas: ofertas),
+              ),
+            ];
+
+            if (constraints.maxWidth >= 860) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: tarjetas[0]),
+                  const SizedBox(width: 12),
+                  Expanded(child: tarjetas[1]),
+                ],
+              );
+            }
+            return Column(
+              children: [tarjetas[0], const SizedBox(height: 12), tarjetas[1]],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// Contenedor de una gráfica: título + subtítulo + área de chart (alto fijo).
+class _GraficaCard extends StatelessWidget {
+  final String titulo;
+  final String subtitulo;
+  final Widget child;
+
+  const _GraficaCard({
+    required this.titulo,
+    required this.subtitulo,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Card(
+      color: p.bgSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              titulo,
+              style: TextStyle(
+                color: p.textPrimary,
+                fontSize: AppTokens.lg,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitulo,
+              style: TextStyle(color: p.textSecondary, fontSize: AppTokens.sm),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(height: 180, child: child),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Barras: ofertas aprobadas vs pendientes de moderación.
+class _BarrasModeracion extends StatelessWidget {
+  final int aprobadas;
+  final int pendientes;
+
+  const _BarrasModeracion({required this.aprobadas, required this.pendientes});
+
+  static const _verde = Color(0xFF2EA043);
+  static const _ambar = Color(0xFFD29922);
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    if (aprobadas == 0 && pendientes == 0) {
+      return Center(
+        child: Text(
+          'Sin ofertas todavía',
+          style: TextStyle(color: p.textMuted, fontSize: AppTokens.sm),
+        ),
+      );
+    }
+
+    final maximo = aprobadas > pendientes ? aprobadas : pendientes;
+    return Column(
+      children: [
+        Expanded(
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: maximo * 1.3,
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (_) => p.bgSurface,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) =>
+                      BarTooltipItem(
+                        '${rod.toY.toInt()} oferta(s)',
+                        TextStyle(
+                          color: p.textPrimary,
+                          fontSize: AppTokens.xs,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                ),
+              ),
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (_) =>
+                    FlLine(color: p.borderSubtle, strokeWidth: 1),
+              ),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 34,
+                    getTitlesWidget: (value, meta) {
+                      const labels = ['Aprobadas', 'Pendientes'];
+                      final i = value.toInt();
+                      if (i < 0 || i >= labels.length) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          labels[i],
+                          style: TextStyle(
+                            color: p.textSecondary,
+                            fontSize: AppTokens.xs,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              barGroups: [
+                BarChartGroupData(
+                  x: 0,
+                  barRods: [
+                    BarChartRodData(
+                      toY: aprobadas.toDouble(),
+                      color: _verde,
+                      width: 32,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                ),
+                BarChartGroupData(
+                  x: 1,
+                  barRods: [
+                    BarChartRodData(
+                      toY: pendientes.toDouble(),
+                      color: _ambar,
+                      width: 32,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _LeyendaItem(color: _verde, label: 'Aprobadas', valor: aprobadas),
+            const SizedBox(width: 16),
+            _LeyendaItem(color: _ambar, label: 'Pendientes', valor: pendientes),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Dona: distribución de las ofertas por área, con leyenda y resaltado
+/// al pasar el mouse sobre una sección.
+class _DonaPorArea extends StatefulWidget {
+  final List<OfertaModel> ofertas;
+
+  const _DonaPorArea({required this.ofertas});
+
+  @override
+  State<_DonaPorArea> createState() => _DonaPorAreaState();
+}
+
+class _DonaPorAreaState extends State<_DonaPorArea> {
+  int? _tocado;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+
+    // Agrupa por área (las vacías van como "Sin área").
+    final conteos = <String, int>{};
+    for (final o in widget.ofertas) {
+      final clave = o.area.trim().isEmpty ? 'Sin área' : o.area.trim();
+      conteos[clave] = (conteos[clave] ?? 0) + 1;
+    }
+    final entradas = conteos.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    if (entradas.isEmpty) {
+      return Center(
+        child: Text(
+          'Sin ofertas todavía',
+          style: TextStyle(color: p.textMuted, fontSize: AppTokens.sm),
+        ),
+      );
+    }
+
+    final total = widget.ofertas.length;
+    final tocado = (_tocado != null && _tocado! < entradas.length)
+        ? _tocado
+        : null;
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 45,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final lado = constraints.biggest.shortestSide;
+              final radio = (lado / 2 - 6).clamp(24.0, 96.0).toDouble();
+              final centro = radio * 0.55;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox.expand(
+                    child: PieChart(
+                      PieChartData(
+                        sectionsSpace: 2,
+                        centerSpaceRadius: centro,
+                        borderData: FlBorderData(show: false),
+                        pieTouchData: PieTouchData(
+                          touchCallback: (event, response) {
+                            setState(() {
+                              _tocado =
+                                  response?.touchedSection?.touchedSectionIndex;
+                            });
+                          },
+                        ),
+                        sections: [
+                          for (var i = 0; i < entradas.length; i++)
+                            PieChartSectionData(
+                              value: entradas[i].value.toDouble(),
+                              color: _chartColors[i % _chartColors.length],
+                              radius: tocado == i ? radio + 6 : radio,
+                              showTitle: false,
+                              borderSide: BorderSide(
+                                color: p.bgSurface,
+                                width: 1,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$total',
+                        style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: AppTokens.xl,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'ofertas',
+                        style: TextStyle(
+                          color: p.textMuted,
+                          fontSize: AppTokens.xs,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 55,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < entradas.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: _LeyendaArea(
+                      color: _chartColors[i % _chartColors.length],
+                      label: entradas[i].key,
+                      valor: entradas[i].value,
+                      total: total,
+                      destacado: tocado == i,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Item de la leyenda de la dona: color, área, valor y porcentaje.
+class _LeyendaArea extends StatelessWidget {
+  final Color color;
+  final String label;
+  final int valor;
+  final int total;
+  final bool destacado;
+
+  const _LeyendaArea({
+    required this.color,
+    required this.label,
+    required this.valor,
+    required this.total,
+    required this.destacado,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final pct = total > 0 ? ((valor / total) * 100).round() : 0;
+    return Row(
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: destacado ? p.textPrimary : p.textSecondary,
+              fontSize: AppTokens.xs,
+              fontWeight: destacado ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$valor · $pct%',
+          style: TextStyle(color: p.textMuted, fontSize: AppTokens.xs),
+        ),
+      ],
+    );
+  }
+}
+
+/// Item de la leyenda de las barras: color, nombre y conteo.
+class _LeyendaItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  final int valor;
+
+  const _LeyendaItem({
+    required this.color,
+    required this.label,
+    required this.valor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$label ($valor)',
+          style: TextStyle(color: p.textSecondary, fontSize: AppTokens.xs),
+        ),
+      ],
     );
   }
 }
