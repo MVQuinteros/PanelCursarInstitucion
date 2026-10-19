@@ -1,17 +1,42 @@
-# institucion_web
+# Panel Institucional CursAR
 
-A new Flutter project.
+Panel web de instituciones para **CursAR**: las instituciones (universidades, terciarios, centros de formación) se **loguean con su cuenta** y desde ahí gestionan todo lo suyo de forma autónoma.
 
-## Getting Started
+**Sitio en línea:** https://mvquinteros.github.io/PanelCursarInstitucion/
 
-This project is a starting point for a Flutter application.
+## ¿Qué hace?
 
-A few resources to get you started if this is your first Flutter project:
+Al iniciar sesión, cada institución ve solo sus datos y puede:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- **Dashboard** con estadísticas y gráficos (ofertas por estado y por área).
+- **Ofertas**: crear, editar, activar / dar de baja y reenviar a revisión, con búsqueda y filtros. Las ofertas pasan por una revisión del equipo de CursAR (aprobada / pendiente) antes de mostrarse en la app.
+- **Avisos**: publicar noticias, recordatorios de inscripción, consejos o eventos para sus seguidores. Quedan guardados como historial: se pueden consultar, editar o borrar.
+- **Perfil de la institución**: datos de contacto, dirección, ubicación en el mapa y logo.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Además:
+
+- Modo claro / oscuro que se recuerda entre sesiones.
+- Diseño responsive: tabla en pantallas grandes y tarjetas en celular.
+- Cualquiera puede registrarse como institución desde el panel; queda pendiente de aprobación por el administrador.
+
+## Tecnologías
+
+- **Flutter** (web) — panel compilado desde un solo código.
+- **Firebase**: autenticación, Cloud Firestore (base de datos) y Storage (logos).
+- **go_router** para rutas y **fl_chart** para los gráficos del dashboard.
+- **GitHub Pages** para hospedaje: cada push a `main` compila y publica automáticamente vía GitHub Actions.
+
+## Ejecutar localmente
+
+```bash
+flutter pub get
+flutter run -d chrome
+```
+
+Para publicar:
+
+```bash
+flutter build web --release
+```
+
+El proyecto usa el Firebase configurado en `lib/firebase_config.dart`. Las reglas de seguridad de Firestore deben permitir a la institución leer y escribir **solo** sus documentos (`ofertas`, `avisos_instituciones`, `instituciones` y su usuario), verificando la pertenencia a través de `usuarios/{uid}.institucionUid`.
