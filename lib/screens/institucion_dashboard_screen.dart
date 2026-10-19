@@ -22,7 +22,6 @@ class InstitucionDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
     final sesion = AuthService.instance.sesion;
     final instUid = sesion?.institucionUid ?? '';
 
@@ -46,55 +45,9 @@ class InstitucionDashboardScreen extends StatelessWidget {
           _GraficasSection(institucionUid: instUid),
           const SizedBox(height: 12),
           _StatsGrid(
-            sesion: sesion,
             institucionUid: instUid,
             onTapOfertas: () => GoRouter.of(context).go('/institucion/ofertas'),
             onTapPerfil: () => GoRouter.of(context).go('/institucion/perfil'),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Acciones rápidas',
-            style: TextStyle(
-              color: p.textPrimary,
-              fontSize: AppTokens.lg,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _AccionCard(
-                  titulo: 'Nueva oferta',
-                  subtitulo: 'Crear una oferta académica',
-                  icono: Icons.add_circle_outline,
-                  color: p.accent,
-                  onTap: () =>
-                      GoRouter.of(context).go('/institucion/ofertas/nueva'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _AccionCard(
-                  titulo: 'Ver ofertas',
-                  subtitulo: 'Listado de ofertas cargadas',
-                  icono: Icons.work_outline,
-                  color: p.accent,
-                  onTap: () => GoRouter.of(context).go('/institucion/ofertas'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: _AccionCard(
-              titulo: 'Mi perfil',
-              subtitulo: 'Editar datos y ubicación de la institución',
-              icono: Icons.person_outline,
-              color: p.textSecondary,
-              onTap: () => GoRouter.of(context).go('/institucion/perfil'),
-            ),
           ),
         ],
       ),
@@ -152,13 +105,11 @@ class _WelcomeCard extends StatelessWidget {
 
 /// Grid de tarjetas de estadísticas (responsive: 3 / 2 / 1 columnas).
 class _StatsGrid extends StatelessWidget {
-  final SesionInstitucion? sesion;
   final String institucionUid;
   final VoidCallback onTapOfertas;
   final VoidCallback onTapPerfil;
 
   const _StatsGrid({
-    required this.sesion,
     required this.institucionUid,
     required this.onTapOfertas,
     required this.onTapPerfil,
@@ -182,10 +133,6 @@ class _StatsGrid extends StatelessWidget {
               : Stream.value(const <OfertaModel>[]),
           builder: (context, snapshot) {
             final ofertas = snapshot.data ?? const <OfertaModel>[];
-            final aprobadas = ofertas.where((o) => o.estaAprobada).length;
-            final pendientes = ofertas.length - aprobadas;
-            final activas = ofertas.where((o) => o.estaActiva).length;
-            final inactivas = ofertas.length - activas;
 
             final cards = <_StatSpec>[
               _StatSpec(
@@ -195,48 +142,6 @@ class _StatsGrid extends StatelessWidget {
                 sub: 'Carreras cargadas',
                 icon: Icons.list_alt,
                 onTap: onTapOfertas,
-              ),
-              _StatSpec(
-                label: 'Aprobadas',
-                value: '$aprobadas',
-                tone: Tone.success,
-                sub: 'Publicadas en la app',
-                icon: Icons.verified_outlined,
-                onTap: onTapOfertas,
-              ),
-              _StatSpec(
-                label: 'Pendientes',
-                value: '$pendientes',
-                tone: Tone.warning,
-                sub: 'Esperando aprobación',
-                icon: Icons.schedule,
-                onTap: onTapOfertas,
-              ),
-              _StatSpec(
-                label: 'Activas',
-                value: '$activas',
-                tone: Tone.purple,
-                sub: 'Visibles en el portal',
-                icon: Icons.visibility_outlined,
-                onTap: onTapOfertas,
-              ),
-              _StatSpec(
-                label: 'Inactivas',
-                value: '$inactivas',
-                tone: Tone.neutral,
-                sub: 'Dadas de baja',
-                icon: Icons.block,
-                onTap: onTapOfertas,
-              ),
-              _StatSpec(
-                label: 'Estado',
-                value: '',
-                tone: sesion?.aprobada == true ? Tone.success : Tone.warning,
-                sub: (sesion?.estadoInstitucion ?? 'pendiente').toUpperCase(),
-                icon: sesion?.aprobada == true
-                    ? Icons.check_circle_outline
-                    : Icons.hourglass_top,
-                onTap: onTapPerfil,
               ),
               _StatSpec(
                 label: 'Perfil',
@@ -431,48 +336,6 @@ class _StatCardItem extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Tarjeta de acción rápida.
-class _AccionCard extends StatelessWidget {
-  final String titulo;
-  final String subtitulo;
-  final IconData icono;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _AccionCard({
-    required this.titulo,
-    required this.subtitulo,
-    required this.icono,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return Card(
-      color: p.bgSurface,
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icono, color: color, size: 24),
-        ),
-        title: Text(
-          titulo,
-          style: TextStyle(color: p.textPrimary, fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(subtitulo, style: TextStyle(color: p.textSecondary)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
       ),
     );
   }

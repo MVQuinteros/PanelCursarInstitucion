@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/cursar_theme.dart';
 import '../core/theme/cursar_palette.dart';
 import '../core/theme/cursar_tone.dart';
+import '../core/theme/theme_controller.dart';
 import '../models/sesion_institucion.dart';
 import '../services/auth_service.dart';
 
@@ -309,14 +310,23 @@ class _InstitucionLayoutState extends State<InstitucionLayout> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      IconButton(
-                        onPressed: () async {
-                          await auth.cerrarSesion();
-                          if (mounted) GoRouter.of(context).go('/login');
+                      // Modo claro/oscuro (sol / luna).
+                      ValueListenableBuilder<ThemeMode>(
+                        valueListenable: ThemeController.modo,
+                        builder: (context, mode, _) {
+                          final oscuro = mode == ThemeMode.dark;
+                          return IconButton(
+                            onPressed: ThemeController.alternar,
+                            icon: Icon(
+                              oscuro
+                                  ? Icons.wb_sunny_rounded
+                                  : Icons.nightlight_round,
+                              size: 19,
+                            ),
+                            color: p.textSecondary,
+                            tooltip: oscuro ? 'Modo claro' : 'Modo oscuro',
+                          );
                         },
-                        icon: const Icon(Icons.logout, size: 19),
-                        color: p.textSecondary,
-                        tooltip: 'Cerrar sesión',
                       ),
                     ],
                   ),
@@ -337,13 +347,6 @@ class _InstitucionLayoutState extends State<InstitucionLayout> {
           ),
         ],
       ),
-      floatingActionButton: location == '/institucion/ofertas'
-          ? FloatingActionButton(
-              onPressed: () =>
-                  GoRouter.of(context).go('/institucion/ofertas/nueva'),
-              child: const Icon(Icons.add),
-            )
-          : null,
     );
   }
 
