@@ -84,22 +84,10 @@ class _InstitucionLayoutState extends State<InstitucionLayout> {
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
           child: Row(
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: p.accent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'C',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
+              Image.asset(
+                'assets/imagenes/logoCursar.png',
+                height: 30,
+                fit: BoxFit.contain,
               ),
               const SizedBox(width: 10),
               Expanded(

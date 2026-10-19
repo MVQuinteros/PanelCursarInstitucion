@@ -37,7 +37,6 @@ class AppRouter {
       final estaLogueado = auth.estaLogueado;
       final sesion = auth.sesion;
       final esInstitucion = sesion?.esInstitucion ?? false;
-      final estaAprobada = sesion?.aprobada ?? false;
 
       final esRutaLogin = state.matchedLocation == '/login';
       final esRutaRegistro = state.matchedLocation == '/registro';
@@ -53,12 +52,11 @@ class AppRouter {
         return '/login';
       }
 
-      // La institución no está aprobada: solo permite login/registro.
-      if (!estaAprobada) {
-        return esRutaPublica ? null : '/login';
-      }
+      // La institución puede entrar aunque esté pendiente de aprobación:
+      // así carga su perfil y ofertas mientras espera la moderación del admin.
+      // (El aviso de "pendiente" se muestra dentro del panel.)
 
-      // Sesión válida y aprobada: si intenta ir a login/registro, enviar al dashboard.
+      // Sesión válida: si intenta ir a login/registro, enviar al dashboard.
       if (esRutaPublica) {
         return '/institucion';
       }
@@ -74,28 +72,21 @@ class AppRouter {
           final estaLogueado = auth.estaLogueado;
           final sesion = auth.sesion;
           final esInstitucion = sesion?.esInstitucion ?? false;
-          final estaAprobada = sesion?.aprobada ?? false;
 
           if (!estaLogueado) return '/login';
           if (!esInstitucion) return '/login';
-          if (!estaAprobada) return '/login';
           return '/institucion';
         },
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/registro',
         builder: (context, state) => const RegistroScreen(),
       ),
       // Rutas protegidas envueltas en el layout del panel institucional.
       ShellRoute(
-        builder: (context, state, child) => InstitucionLayout(
-          child: child,
-          location: state.uri.toString(),
-        ),
+        builder: (context, state, child) =>
+            InstitucionLayout(child: child, location: state.uri.toString()),
         routes: [
           GoRoute(
             path: '/institucion',
@@ -123,8 +114,7 @@ class AppRouter {
         ],
       ),
     ],
-    errorBuilder: (context, state) => const Scaffold(
-      body: Center(child: Text('Página no encontrada')),
-    ),
+    errorBuilder: (context, state) =>
+        const Scaffold(body: Center(child: Text('Página no encontrada'))),
   );
 }
