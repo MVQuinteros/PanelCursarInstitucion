@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/cursar_palette.dart';
 import '../core/theme/cursar_theme.dart';
 import '../core/theme/cursar_tone.dart';
-import '../core/widgets/info_banner.dart';
 import '../models/oferta_model.dart';
 import '../models/sesion_institucion.dart';
 import '../services/auth_service.dart';
@@ -29,17 +28,6 @@ class InstitucionDashboardScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (sesion != null && !sesion.aprobada)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 10),
-              child: InfoBanner(
-                message:
-                    'Tu institución está pendiente de aprobación. Podés cargar '
-                    'tu información y ofertas mientras tanto.',
-                tone: Tone.warning,
-                icon: Icons.hourglass_top,
-              ),
-            ),
           _WelcomeCard(sesion: sesion),
           const SizedBox(height: 12),
           _GraficasSection(institucionUid: instUid),

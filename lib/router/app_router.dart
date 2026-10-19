@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../services/auth_service.dart';
+import '../screens/avisos_list_screen.dart';
 import '../screens/institucion_dashboard_screen.dart';
 import '../screens/institucion_perfil_screen.dart';
 import '../screens/login_screen.dart';
@@ -20,6 +21,7 @@ import '../widgets/institucion_layout.dart';
 /// Rutas protegidas (requieren sesión activa de institución):
 ///   - `/institucion`              : dashboard del panel institucional.
 ///   - `/institucion/ofertas`      : listado de ofertas académicas.
+///   - `/institucion/avisos`       : historial de avisos institucionales.
 ///   - `/institucion/ofertas/nueva`: formulario para crear oferta.
 ///   - `/institucion/ofertas/:id/editar` : formulario para editar oferta.
 ///   - `/institucion/perfil`       : edición de datos de la institución.
@@ -53,8 +55,7 @@ class AppRouter {
       }
 
       // La institución puede entrar aunque esté pendiente de aprobación:
-      // así carga su perfil y ofertas mientras espera la moderación del admin.
-      // (El aviso de "pendiente" se muestra dentro del panel.)
+      // así carga su perfil, ofertas y avisos mientras espera al admin.
 
       // Sesión válida: si intenta ir a login/registro, enviar al dashboard.
       if (esRutaPublica) {
@@ -95,6 +96,10 @@ class AppRouter {
           GoRoute(
             path: '/institucion/ofertas',
             builder: (context, state) => const OfertasListScreen(),
+          ),
+          GoRoute(
+            path: '/institucion/avisos',
+            builder: (context, state) => const AvisosListScreen(),
           ),
           GoRoute(
             path: '/institucion/ofertas/nueva',

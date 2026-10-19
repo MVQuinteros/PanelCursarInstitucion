@@ -42,6 +42,9 @@ dependencies:
   file_picker: ^8.0.0
   intl: ^0.20.2
   fl_chart: ^0.69.2
+  # localStorage de la web (modo claro/oscuro persistente). Ya venía
+  # como transitiva de Flutter; solo la declaramos para usarla directo.
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

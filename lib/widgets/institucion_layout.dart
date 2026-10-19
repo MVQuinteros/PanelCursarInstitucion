@@ -38,8 +38,10 @@ class _InstitucionLayoutState extends State<InstitucionLayout> {
       case '/institucion/ofertas/nueva':
       case _ when location.startsWith('/institucion/ofertas/'):
         return 1;
-      case '/institucion/perfil':
+      case '/institucion/avisos':
         return 2;
+      case '/institucion/perfil':
+        return 3;
       default:
         return 0;
     }
@@ -61,6 +63,9 @@ class _InstitucionLayoutState extends State<InstitucionLayout> {
         break;
       case '/institucion/ofertas':
         appBarTitle = 'Ofertas académicas';
+        break;
+      case '/institucion/avisos':
+        appBarTitle = 'Avisos';
         break;
       case '/institucion/ofertas/nueva':
         appBarTitle = 'Nueva oferta';
@@ -162,9 +167,18 @@ class _InstitucionLayoutState extends State<InstitucionLayout> {
                   },
                 ),
                 _NavItem(
+                  label: 'Avisos',
+                  icon: Icons.campaign,
+                  active: currentIndex == 2,
+                  onTap: () {
+                    GoRouter.of(context).go('/institucion/avisos');
+                    if (!isWide) _scaffoldKey.currentState?.closeDrawer();
+                  },
+                ),
+                _NavItem(
                   label: 'Perfil',
                   icon: Icons.person,
-                  active: currentIndex == 2,
+                  active: currentIndex == 3,
                   onTap: () {
                     GoRouter.of(context).go('/institucion/perfil');
                     if (!isWide) _scaffoldKey.currentState?.closeDrawer();

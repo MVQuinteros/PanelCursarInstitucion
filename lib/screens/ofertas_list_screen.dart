@@ -136,8 +136,7 @@ class _OfertasListScreenState extends State<OfertasListScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${sesion?.institucionNombre ?? 'Institución'} '
-                  '(${sesion?.estadoInstitucion ?? 'pendiente'})',
+                  sesion?.institucionNombre ?? 'Institución',
                   style: TextStyle(
                     color: p.textPrimary,
                     fontSize: AppTokens.md,
@@ -145,10 +144,6 @@ class _OfertasListScreenState extends State<OfertasListScreen> {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              StatusBadge(
-                sesion?.aprobada == true ? 'Aprobada' : 'Pendiente',
-                tone: sesion?.aprobada == true ? Tone.success : Tone.warning,
               ),
             ],
           ),
@@ -420,7 +415,12 @@ class _OfertasTable extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            DataCell(Text(o.duracionAnios == 0 ? '' : '${o.duracionAnios} año(s)', style: cellStyle)),
+            DataCell(
+              Text(
+                o.duracionAnios == 0 ? '' : '${o.duracionAnios} año(s)',
+                style: cellStyle,
+              ),
+            ),
             DataCell(Text(o.tag, style: cellStyle)),
             DataCell(
               StatusBadge(
