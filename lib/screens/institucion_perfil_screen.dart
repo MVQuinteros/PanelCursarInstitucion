@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:web/web.dart' as web;
 
 import '../core/theme/cursar_palette.dart';
 import '../core/theme/cursar_theme.dart';
@@ -15,6 +17,9 @@ import '../services/logo_storage_service.dart';
 /// sitio web y logo URL. El logo se puede subir desde la galería
 /// (se guarda en Firebase Storage) o pegando una URL directa.
 /// Los cambios se guardan en Firestore en `instituciones/{institucionUid}`.
+///
+/// También muestra en modo solo lectura la identificación oficial (CUE,
+/// fuente del padrón y dependencia) cuando la institución la tiene cargada.
 class InstitucionPerfilScreen extends StatefulWidget {
   const InstitucionPerfilScreen({super.key});
 
@@ -36,6 +41,13 @@ class _InstitucionPerfilScreenState extends State<InstitucionPerfilScreen> {
   // Coordenadas para el mapa ("Cómo llegar") de la app.
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
+
+  // Identificación oficial (solo lectura; la carga el equipo de CursAR).
+  String _cue = '';
+  String _fuente = '';
+  String _dependeDe = '';
+  String _identificadorOrigen = '';
+  DateTime? _identificadorFecha;
 
   bool _cargando = false;
   bool _subiendoLogo = false;
@@ -84,6 +96,15 @@ class _InstitucionPerfilScreenState extends State<InstitucionPerfilScreen> {
         }
         _latCtrl.text = lat?.toString() ?? '';
         _lngCtrl.text = lng?.toString() ?? '';
+
+        // Identificación oficial (solo lectura).
+        String texto(Object? v) => (v ?? '').toString().trim();
+        _cue = texto(data['cue']);
+        _fuente = texto(data['fuente']);
+        _dependeDe = texto(data['dependeDe']);
+        _identificadorOrigen = texto(data['identificadorFuente']);
+        final cargado = data['identificadorCargadoFecha'];
+        _identificadorFecha = cargado is Timestamp ? cargado.toDate() : null;
       }
     } catch (e) {
       if (mounted) setState(() => _error = 'Error al cargar datos: $e');
@@ -258,6 +279,10 @@ class _InstitucionPerfilScreenState extends State<InstitucionPerfilScreen> {
           'Edita los datos de tu institución.',
           style: TextStyle(color: p.textSecondary),
         ),
+        const SizedBox(height: 12),
+
+        // Identificación oficial (solo lectura; solo si existe).
+        _seccionIdentificacion(p),
         const SizedBox(height: 12),
 
         // Sección de logo.
@@ -544,6 +569,116 @@ class _InstitucionPerfilScreenState extends State<InstitucionPerfilScreen> {
           style: TextStyle(color: p.textMuted, fontSize: 11),
         ),
       ],
+    );
+  }
+
+  /// Sección de solo lectura con la identificación oficial de la institución
+  /// (CUE, fuente del padrón y dependencia). La carga el equipo de CursAR;
+  /// el panel solo la muestra y se oculta si la institución no tiene datos.
+  Widget _seccionIdentificacion(CursarPalette p) {
+    final hayDatos =
+        _cue.isNotEmpty || _fuente.isNotEmpty || _dependeDe.isNotEmpty;
+    if (!hayDatos) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Identificación oficial',
+          style: TextStyle(
+            color: p.textPrimary,
+            fontSize: AppTokens.lg,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: p.bgInput,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: p.borderSubtle),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_cue.isNotEmpty)
+                _filaIdentificacion(p, 'CUE', _cue, esCue: true),
+              if (_fuente.isNotEmpty) _filaIdentificacion(p, 'Fuente', _fuente),
+              if (_dependeDe.isNotEmpty)
+                _filaIdentificacion(p, 'Depende de', _dependeDe),
+              if (_identificadorOrigen.isNotEmpty ||
+                  _identificadorFecha != null)
+                _filaIdentificacion(
+                  p,
+                  'Verificado',
+                  [
+                    if (_identificadorOrigen.isNotEmpty) _identificadorOrigen,
+                    if (_identificadorFecha != null)
+                      DateFormat('dd/MM/yyyy').format(_identificadorFecha!),
+                  ].join(' · '),
+                ),
+              const SizedBox(height: 4),
+              Text(
+                'Datos cargados por el equipo de CursAR. '
+                'No se pueden editar desde el panel.',
+                style: TextStyle(color: p.textMuted, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Fila etiqueta → valor de la identificación. El CUE se muestra en
+  /// monoespaciado y abre la consulta de SITRARED al tocarlo.
+  Widget _filaIdentificacion(
+    CursarPalette p,
+    String etiqueta,
+    String valor, {
+    bool esCue = false,
+  }) {
+    final texto = Text(
+      valor,
+      style: TextStyle(
+        color: esCue ? p.accent : p.textPrimary,
+        fontSize: AppTokens.md2,
+        fontFamily: esCue ? 'monospace' : null,
+        fontWeight: esCue ? FontWeight.w600 : null,
+        decoration: esCue ? TextDecoration.underline : null,
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 96,
+            child: Text(
+              etiqueta,
+              style: TextStyle(color: p.textSecondary, fontSize: 12),
+            ),
+          ),
+          Expanded(
+            child: esCue ? InkWell(onTap: _abrirSitrared, child: texto) : texto,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Abre la consulta ciudadana de SITRARED en pestaña nueva para
+  /// verificar el CUE (la misma referencia que usa el panel admin).
+  void _abrirSitrared() {
+    web.window.open(
+      'https://sitrared.educacion.gob.ar/SITRARED/'
+          'meConsultaCiudadana/ConsultaCue/Index',
+      '_blank',
+      'noopener',
     );
   }
 
