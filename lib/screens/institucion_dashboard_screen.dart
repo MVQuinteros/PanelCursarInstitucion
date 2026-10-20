@@ -626,7 +626,7 @@ class _DonaPorAreaState extends State<_DonaPorArea> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final lado = constraints.biggest.shortestSide;
-              final radio = (lado / 2 - 6).clamp(24.0, 96.0).toDouble();
+              final radio = (lado / 2 - 18).clamp(22.0, 72.0).toDouble();
               final centro = radio * 0.55;
               return Stack(
                 alignment: Alignment.center,
@@ -650,7 +650,7 @@ class _DonaPorAreaState extends State<_DonaPorArea> {
                             PieChartSectionData(
                               value: entradas[i].value.toDouble(),
                               color: _chartColors[i % _chartColors.length],
-                              radius: tocado == i ? radio + 6 : radio,
+                              radius: tocado == i ? radio + 4 : radio,
                               showTitle: false,
                               borderSide: BorderSide(
                                 color: p.bgSurface,
